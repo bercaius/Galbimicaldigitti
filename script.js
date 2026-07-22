@@ -33,13 +33,13 @@ function initBgCanvas() {
     if (bgCtx) bgCtx.scale(dpr, dpr);
 
     stars = [];
-    const count = Math.min(Math.floor((width * height) / 3000), 220);
+    const count = Math.min(Math.floor((width * height) / 2500), 250);
 
     for (let i = 0; i < count; i++) {
         stars.push({
             x: Math.random() * width,
             y: Math.random() * height,
-            size: Math.random() * 1.6 + 0.4,
+            size: Math.random() * 1.8 + 0.5,
             alpha: Math.random(),
             speed: Math.random() * 0.02 + 0.005,
             phase: Math.random() * Math.PI * 2
@@ -56,16 +56,16 @@ function renderBgCanvas() {
 
     // Deep cosmic space gradient
     const gradient = bgCtx.createRadialGradient(width / 2, height / 2, 50, width / 2, height / 2, Math.max(width, height));
-    gradient.addColorStop(0, '#0d041a');
-    gradient.addColorStop(0.6, '#04010a');
-    gradient.addColorStop(1, '#000003');
+    gradient.addColorStop(0, '#1a0526');
+    gradient.addColorStop(0.5, '#0a0212');
+    gradient.addColorStop(1, '#020005');
     bgCtx.fillStyle = gradient;
     bgCtx.fillRect(0, 0, width, height);
 
-    // Nebula Glow Behind Heart
-    const nebula = bgCtx.createRadialGradient(width / 2, height / 2, 0, width / 2, height / 2, width * 0.4);
-    nebula.addColorStop(0, 'rgba(255, 30, 80, 0.28)');
-    nebula.addColorStop(0.5, 'rgba(180, 20, 60, 0.12)');
+    // Vibrant Glowing Red/Pink Nebula Behind Heart
+    const nebula = bgCtx.createRadialGradient(width / 2, height / 2, 0, width / 2, height / 2, width * 0.45);
+    nebula.addColorStop(0, 'rgba(255, 30, 85, 0.35)');
+    nebula.addColorStop(0.5, 'rgba(180, 20, 70, 0.18)');
     nebula.addColorStop(1, 'transparent');
     bgCtx.fillStyle = nebula;
     bgCtx.globalCompositeOperation = 'screen';
@@ -86,7 +86,7 @@ function renderBgCanvas() {
 }
 
 // ======================================================
-// 2. PROCEDURAL TEXTURE GENERATION (3D Surface Texture)
+// 2. PROCEDURAL TEXTURE GENERATION (Fast & Safe 2D Canvas)
 // ======================================================
 function createProceduralTexture() {
     const canvas = document.createElement('canvas');
@@ -94,34 +94,34 @@ function createProceduralTexture() {
     canvas.height = 512;
     const ctx = canvas.getContext('2d');
 
-    // Base Crimson Velvet Background
+    // Rich Crimson Ruby Gradient
     const grad = ctx.createLinearGradient(0, 0, 512, 512);
-    grad.addColorStop(0, '#ff1a53');
-    grad.addColorStop(0.5, '#d60b3b');
-    grad.addColorStop(1, '#8f0022');
+    grad.addColorStop(0, '#ff1f5a');
+    grad.addColorStop(0.5, '#d80036');
+    grad.addColorStop(1, '#7a001c');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, 512, 512);
 
-    // Add Procedural Organic Grain / Noise Texture
-    const imgData = ctx.getImageData(0, 0, 512, 512);
-    const data = imgData.data;
-
-    for (let i = 0; i < data.length; i += 4) {
-        const noise = (Math.random() - 0.5) * 28;
-        data[i] = Math.min(255, Math.max(0, data[i] + noise));     // R
-        data[i + 1] = Math.min(255, Math.max(0, data[i + 1] + noise * 0.3)); // G
-        data[i + 2] = Math.min(255, Math.max(0, data[i + 2] + noise * 0.4)); // B
-    }
-    ctx.putImageData(imgData, 0, 0);
-
-    // Subtle Radial Surface Highlights
-    for (let j = 0; j < 40; j++) {
+    // Safe procedural organic texture dots
+    for (let i = 0; i < 2000; i++) {
         const x = Math.random() * 512;
         const y = Math.random() * 512;
-        const r = Math.random() * 60 + 20;
+        const radius = Math.random() * 2 + 0.5;
+        const opacity = Math.random() * 0.25;
+        ctx.fillStyle = `rgba(255, 200, 220, ${opacity})`;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // Organic Velvet Highlights
+    for (let j = 0; j < 30; j++) {
+        const x = Math.random() * 512;
+        const y = Math.random() * 512;
+        const r = Math.random() * 70 + 20;
 
         const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-        g.addColorStop(0, 'rgba(255, 180, 200, 0.15)');
+        g.addColorStop(0, 'rgba(255, 180, 210, 0.2)');
         g.addColorStop(1, 'transparent');
 
         ctx.fillStyle = g;
@@ -146,11 +146,10 @@ function createBumpMapTexture() {
     ctx.fillStyle = '#808080';
     ctx.fillRect(0, 0, 512, 512);
 
-    // High detail bump map pattern
-    for (let i = 0; i < 1200; i++) {
+    for (let i = 0; i < 1500; i++) {
         const x = Math.random() * 512;
         const y = Math.random() * 512;
-        const r = Math.random() * 4 + 1;
+        const r = Math.random() * 3 + 1;
         const val = Math.floor(Math.random() * 255);
 
         ctx.fillStyle = `rgb(${val},${val},${val})`;
@@ -185,7 +184,12 @@ function createHeartShape() {
 }
 
 function initThree() {
-    if (!threeContainer || typeof THREE === 'undefined') return;
+    if (!threeContainer) return;
+    if (typeof THREE === 'undefined') {
+        // Retry in 100ms if script is loading
+        setTimeout(initThree, 100);
+        return;
+    }
 
     const width = window.innerWidth;
     const height = window.innerHeight;
@@ -197,12 +201,12 @@ function initThree() {
 
     renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
     renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     threeContainer.innerHTML = '';
     threeContainer.appendChild(renderer.domElement);
 
     // Multi-Light Setup for rich 3D shading
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
     scene.add(ambientLight);
 
     const mainLight = new THREE.PointLight(0xff5588, 3, 350);
@@ -235,15 +239,15 @@ function initThree() {
     const colorTex = createProceduralTexture();
     const bumpTex = createBumpMapTexture();
 
-    // Textured Metallic/Velvet Material
-    const material = new THREE.MeshStandardMaterial({
+    // Textured Metallic/Velvet Shiny Material
+    const material = new THREE.MeshPhongMaterial({
         map: colorTex,
         bumpMap: bumpTex,
-        bumpScale: 0.8,
-        roughness: 0.35,
-        metalness: 0.25,
-        emissive: 0x4a0015,
-        emissiveIntensity: 0.4
+        bumpScale: 0.6,
+        color: 0xff1e53,
+        emissive: 0x5a001a,
+        specular: 0xffaaaa,
+        shininess: 90
     });
 
     heartMesh = new THREE.Mesh(geometry, material);
@@ -251,12 +255,12 @@ function initThree() {
     heartMesh.rotation.x = Math.PI; // Flip upright
     scene.add(heartMesh);
 
-    // Glowing Geometric Wireframe Mesh Overlay ("Ağlı" 3D Mesh)
+    // Glowing Geometric Wireframe Mesh Overlay ("Ağlı" 3D Wireframe)
     const wireMat = new THREE.MeshBasicMaterial({
         color: 0xff66a0,
         wireframe: true,
         transparent: true,
-        opacity: 0.22,
+        opacity: 0.25,
         blending: THREE.AdditiveBlending
     });
     wireframeMesh = new THREE.Mesh(geometry, wireMat);
@@ -418,5 +422,3 @@ if (document.readyState === 'loading') {
 } else {
     init();
 }
-
-

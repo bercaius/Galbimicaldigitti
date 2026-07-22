@@ -8,6 +8,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = 3000;
 
+app.use('/node_modules', express.static(path.join(__dirname, 'node_modules')));
 app.use(express.static(__dirname));
 
 app.get('*', (req, res) => {
