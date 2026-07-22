@@ -1,0 +1,8 @@
+{
+  "name": "Sana Özel",
+  "description": "Animasyonlu kalp ve yıldızlı arka plana sahip özel web uygulaması",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
