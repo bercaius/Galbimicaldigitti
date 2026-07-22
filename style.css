@@ -36,51 +36,12 @@ html, body {
     z-index: 2;
 }
 
-/* FLOATING START MUSIC PROMPT TOAST */
-.start-prompt {
-    position: fixed;
-    bottom: 80px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 12;
-    background: rgba(15, 8, 28, 0.75);
-    border: 1px solid rgba(255, 60, 110, 0.3);
-    color: rgba(255, 255, 255, 0.95);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    font-size: 13px;
-    font-weight: 500;
-    padding: 10px 20px;
-    border-radius: 30px;
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 40, 90, 0.2);
-    pointer-events: none;
-    animation: floatPrompt 2.5s ease-in-out infinite alternate, fadeIn 0.5s ease forwards;
-    white-space: nowrap;
-}
-
-@keyframes floatPrompt {
-    0% { transform: translate(-50%, 0); }
-    100% { transform: translate(-50%, -6px); }
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-/* AUDIO CONTROLS (BOTTOM RIGHT) */
-.audio-controls {
+/* MINIMAL DISCREET SOUND BUTTON */
+.sound-btn {
     position: fixed;
     bottom: 24px;
     right: 24px;
     z-index: 10;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.control-btn {
     width: 42px;
     height: 42px;
     border-radius: 50%;
@@ -97,7 +58,7 @@ html, body {
     transition: opacity 0.3s ease, background 0.3s ease, transform 0.2s ease, color 0.3s ease;
 }
 
-.control-btn:hover {
+.sound-btn:hover {
     opacity: 1;
     color: #ffffff;
     background: rgba(255, 40, 90, 0.25);
@@ -105,7 +66,7 @@ html, body {
     transform: scale(1.08);
 }
 
-.control-btn:active {
+.sound-btn:active {
     transform: scale(0.95);
 }
 

@@ -21,37 +21,21 @@
     <!-- Fullscreen 3D Dokulu Kalp Canvas Container -->
     <div id="three-container"></div>
 
-    <!-- Start Music Floating Prompt -->
-    <div id="start-prompt" class="start-prompt">
-        <span>🎵 Müziği Başlatmak İçin Ekrana Dokunun</span>
-    </div>
+    <!-- Gizli Minimal Ses Kontrol Düğmesi -->
+    <button id="btn-sound" class="sound-btn" aria-label="Sesi Aç/Kapat" title="Sesi Aç / Kapat">
+        <svg id="sound-on-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+        </svg>
+        <svg id="sound-off-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <line x1="23" y1="9" x2="17" y2="15"></line>
+            <line x1="17" y1="9" x2="23" y2="15"></line>
+        </svg>
+    </button>
 
-    <!-- Minimal Ses ve MP3 Seçme Kontrolleri -->
-    <div class="audio-controls">
-        <label id="btn-upload" class="control-btn" title="MP3 Yükle / Seç">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="17 8 12 3 7 8"></polyline>
-                <line x1="12" y1="3" x2="12" y2="15"></line>
-            </svg>
-            <input type="file" id="audio-file-input" accept="audio/*" style="display: none;">
-        </label>
-
-        <button id="btn-sound" class="control-btn" aria-label="Sesi Aç/Kapat" title="Sesi Aç / Kapat">
-            <svg id="sound-on-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
-            </svg>
-            <svg id="sound-off-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
-                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                <line x1="23" y1="9" x2="17" y2="15"></line>
-                <line x1="17" y1="9" x2="23" y2="15"></line>
-            </svg>
-        </button>
-    </div>
-
-    <!-- Otomatik Oynatılan Fon Müziği (music.mp3) -->
+    <!-- Repodaki music.mp3 Ses Dosyası -->
     <audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
 
     <script src="script.js"></script>
