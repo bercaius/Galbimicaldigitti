@@ -493,9 +493,6 @@ function setupAudio() {
     tryPlay();
 }
 
-    tryPlay();
-}
-
 // Pointer Events for 3D Tilt & Cursor Particles
 function setupPointerEvents() {
     window.addEventListener('mousemove', (e) => {
