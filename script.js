@@ -425,54 +425,135 @@ function animate() {
 }
 
 // ======================================================
-// 5. AUTOMATIC AUDIO PLAYBACK & DISCREET SOUND TOGGLE
+// 5. AUTOMATIC AUDIO PLAYBACK, MP3 FILE UPLOAD & FALLBACK
 // ======================================================
+let synthAudioContext = null;
+let isSynthPlaying = false;
+
+function playAmbientSynthFallback() {
+    if (isSynthPlaying) return;
+    try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        synthAudioContext = new AudioCtx();
+
+        // Dual Oscillator Gentle Ambient Chords (A Minor Romantic Pad)
+        const notes = [220, 261.63, 329.63, 440]; // A3, C4, E4, A4
+        notes.forEach((freq, idx) => {
+            const osc = synthAudioContext.createOscillator();
+            const gain = synthAudioContext.createGain();
+
+            osc.type = idx % 2 === 0 ? 'sine' : 'triangle';
+            osc.frequency.setValueAtTime(freq, synthAudioContext.currentTime);
+
+            gain.gain.setValueAtTime(0.01, synthAudioContext.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.08, synthAudioContext.currentTime + 3);
+
+            osc.connect(gain);
+            gain.connect(synthAudioContext.destination);
+
+            osc.start();
+        });
+        isSynthPlaying = true;
+    } catch (e) {
+        console.warn('Web Audio Fallback not available', e);
+    }
+}
+
 function setupAudio() {
     const bgMusic = document.getElementById('bg-music');
     const btnSound = document.getElementById('btn-sound');
     const soundOnIcon = document.getElementById('sound-on-icon');
     const soundOffIcon = document.getElementById('sound-off-icon');
+    const startPrompt = document.getElementById('start-prompt');
+    const audioFileInput = document.getElementById('audio-file-input');
 
     if (!bgMusic) return;
 
     bgMusic.volume = 0.85;
 
-    const tryPlay = () => {
-        bgMusic.play().then(() => {
-            isAudioPlaying = true;
-            if (soundOnIcon && soundOffIcon) {
+    const hideStartPrompt = () => {
+        if (startPrompt) {
+            startPrompt.style.opacity = '0';
+            setTimeout(() => {
+                startPrompt.style.display = 'none';
+            }, 500);
+        }
+    };
+
+    const updateSoundIcons = (playing) => {
+        if (soundOnIcon && soundOffIcon) {
+            if (playing) {
                 soundOnIcon.style.display = 'block';
                 soundOffIcon.style.display = 'none';
-            }
-        }).catch(() => {
-            isAudioPlaying = false;
-            if (soundOnIcon && soundOffIcon) {
+            } else {
                 soundOnIcon.style.display = 'none';
                 soundOffIcon.style.display = 'block';
             }
-        });
+        }
     };
+
+    const tryPlay = () => {
+        const playPromise = bgMusic.play();
+        if (playPromise !== undefined) {
+            playPromise.then(() => {
+                isAudioPlaying = true;
+                updateSoundIcons(true);
+                hideStartPrompt();
+            }).catch((err) => {
+                isAudioPlaying = false;
+                updateSoundIcons(false);
+                // If music file not found (404 / media error), trigger romantic synth fallback
+                if (bgMusic.error) {
+                    playAmbientSynthFallback();
+                    hideStartPrompt();
+                }
+            });
+        }
+    };
+
+    // If music.mp3 has a media load error (e.g. 404 file missing)
+    bgMusic.addEventListener('error', () => {
+        console.log('music.mp3 file not found or invalid format.');
+        if (startPrompt) {
+            startPrompt.innerHTML = '<span>🎵 Kendi MP3 Dosyanızı Seçmek İçin Sağ Alttaki Yükle İkonuna Basın</span>';
+        }
+    });
+
+    // Custom Local MP3 File Upload Handler
+    if (audioFileInput) {
+        audioFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const objectUrl = URL.createObjectURL(file);
+                bgMusic.src = objectUrl;
+                bgMusic.play().then(() => {
+                    isAudioPlaying = true;
+                    updateSoundIcons(true);
+                    hideStartPrompt();
+                }).catch(err => console.error(err));
+            }
+        });
+    }
 
     // Discreet Sound Toggle Button
     if (btnSound) {
         btnSound.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (bgMusic.paused) {
-                bgMusic.play();
-                isAudioPlaying = true;
-                soundOnIcon.style.display = 'block';
-                soundOffIcon.style.display = 'none';
-            } else {
+            hideStartPrompt();
+            if (bgMusic.paused && !isSynthPlaying) {
+                tryPlay();
+            } else if (!bgMusic.paused) {
                 bgMusic.pause();
                 isAudioPlaying = false;
-                soundOnIcon.style.display = 'none';
-                soundOffIcon.style.display = 'block';
+                updateSoundIcons(false);
             }
         });
     }
 
-    // Gesture unlock
+    // Gesture Unlock for autoplay policies
     const userGesturePlay = () => {
+        hideStartPrompt();
         if (!isAudioPlaying) {
             tryPlay();
         }
