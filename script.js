@@ -10,15 +10,20 @@ const threeContainer = document.getElementById('three-container');
 // Three.js Globals
 let scene, camera, renderer;
 let heartMesh, wireframeMesh, dustParticles;
+let burstParticleGroup = null;
 let time = 0;
 let mouse = { x: 0, y: 0, targetX: 0, targetY: 0 };
 let isAudioPlaying = false;
+let heartPulseBoost = 0;
+
+// Cursor Light Trail Array
+let cursorTrail = [];
 
 // Background Stars
 let stars = [];
 
 // ======================================================
-// 1. BACKGROUND STARS & NEBULA CANVAS
+// 1. BACKGROUND STARS & NEBULA CANVAS WITH CURSOR TRAIL
 // ======================================================
 function initBgCanvas() {
     if (!bgCanvas) return;
@@ -82,6 +87,22 @@ function renderBgCanvas() {
         bgCtx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
         bgCtx.fill();
     });
+
+    // Subtle Soft Cursor Trail
+    for (let i = cursorTrail.length - 1; i >= 0; i--) {
+        const pt = cursorTrail[i];
+        pt.life -= 0.025;
+        if (pt.life <= 0) {
+            cursorTrail.splice(i, 1);
+            continue;
+        }
+        bgCtx.fillStyle = '#ff4d79';
+        bgCtx.globalAlpha = pt.life * 0.35;
+        bgCtx.beginPath();
+        bgCtx.arc(pt.x, pt.y, pt.size * pt.life, 0, Math.PI * 2);
+        bgCtx.fill();
+    }
+
     bgCtx.globalAlpha = 1;
 }
 
@@ -166,7 +187,7 @@ function createBumpMapTexture() {
 }
 
 // ======================================================
-// 3. THREE.JS REALISTIC 3D HEART
+// 3. THREE.JS REALISTIC 3D HEART & DYNAMIC PARTICLES
 // ======================================================
 function createHeartShape() {
     const x = 0, y = 0;
@@ -186,7 +207,6 @@ function createHeartShape() {
 function initThree() {
     if (!threeContainer) return;
     if (typeof THREE === 'undefined') {
-        // Retry in 100ms if script is loading
         setTimeout(initThree, 100);
         return;
     }
@@ -290,6 +310,41 @@ function initThree() {
 
     dustParticles = new THREE.Points(dustGeo, dustMat);
     scene.add(dustParticles);
+
+    // Particle Group for Interactive Tap/Click Sparks
+    burstParticleGroup = new THREE.Group();
+    scene.add(burstParticleGroup);
+}
+
+// Spawns soft 3D floating sparks on click/tap
+function triggerClickSparks() {
+    if (!burstParticleGroup) return;
+
+    heartPulseBoost = 0.24; // Extra Heart Jump
+
+    const sparkCount = 18;
+    for (let i = 0; i < sparkCount; i++) {
+        const pMat = new THREE.PointsMaterial({
+            size: Math.random() * 3 + 1.5,
+            color: new THREE.Color().setHSL(0.95, 0.9, 0.6 + Math.random() * 0.3),
+            transparent: true,
+            opacity: 1,
+            blending: THREE.AdditiveBlending
+        });
+
+        const pGeo = new THREE.BufferGeometry();
+        pGeo.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0], 3));
+
+        const pMesh = new THREE.Points(pGeo, pMat);
+        pMesh.userData = {
+            vx: (Math.random() - 0.5) * 2.2,
+            vy: (Math.random() - 0.5) * 2.2 + 0.8,
+            vz: (Math.random() - 0.5) * 2.0,
+            life: 1.0
+        };
+
+        burstParticleGroup.add(pMesh);
+    }
 }
 
 // ======================================================
@@ -304,6 +359,12 @@ function renderThree() {
     mouse.x += (mouse.targetX - mouse.x) * 0.05;
     mouse.y += (mouse.targetY - mouse.y) * 0.05;
 
+    // Decay Heart Pulse Boost
+    if (heartPulseBoost > 0) {
+        heartPulseBoost *= 0.92;
+        if (heartPulseBoost < 0.001) heartPulseBoost = 0;
+    }
+
     // Realistic Organic Pulse Wave (lub-dub heartbeat)
     const beatPhase = (time * 2.8) % (Math.PI * 2);
     let scalePulse = 1;
@@ -312,6 +373,8 @@ function renderThree() {
     } else if (beatPhase > 0.7 && beatPhase < 1.2) {
         scalePulse = 1 + Math.sin((beatPhase - 0.7) * (Math.PI / 0.5)) * 0.045;
     }
+
+    scalePulse += heartPulseBoost;
 
     const baseScale = (window.innerWidth < 600) ? 0.62 : 0.8;
 
@@ -333,6 +396,25 @@ function renderThree() {
         dustParticles.rotation.x = time * 0.02;
     }
 
+    // Update Click Sparks
+    if (burstParticleGroup) {
+        for (let i = burstParticleGroup.children.length - 1; i >= 0; i--) {
+            const spark = burstParticleGroup.children[i];
+            spark.position.x += spark.userData.vx;
+            spark.position.y += spark.userData.vy;
+            spark.position.z += spark.userData.vz;
+            spark.userData.life -= 0.02;
+
+            spark.material.opacity = spark.userData.life;
+
+            if (spark.userData.life <= 0) {
+                burstParticleGroup.remove(spark);
+                spark.geometry.dispose();
+                spark.material.dispose();
+            }
+        }
+    }
+
     renderer.render(scene, camera);
 }
 
@@ -343,10 +425,14 @@ function animate() {
 }
 
 // ======================================================
-// 5. AUTOMATIC AUDIO PLAYBACK (music.mp3)
+// 5. AUTOMATIC AUDIO PLAYBACK & DISCREET SOUND TOGGLE
 // ======================================================
 function setupAudio() {
     const bgMusic = document.getElementById('bg-music');
+    const btnSound = document.getElementById('btn-sound');
+    const soundOnIcon = document.getElementById('sound-on-icon');
+    const soundOffIcon = document.getElementById('sound-off-icon');
+
     if (!bgMusic) return;
 
     bgMusic.volume = 0.85;
@@ -354,12 +440,38 @@ function setupAudio() {
     const tryPlay = () => {
         bgMusic.play().then(() => {
             isAudioPlaying = true;
+            if (soundOnIcon && soundOffIcon) {
+                soundOnIcon.style.display = 'block';
+                soundOffIcon.style.display = 'none';
+            }
         }).catch(() => {
             isAudioPlaying = false;
+            if (soundOnIcon && soundOffIcon) {
+                soundOnIcon.style.display = 'none';
+                soundOffIcon.style.display = 'block';
+            }
         });
     };
 
-    // User gesture handler to enable sound if browser restricts unmuted autoplay
+    // Discreet Sound Toggle Button
+    if (btnSound) {
+        btnSound.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (bgMusic.paused) {
+                bgMusic.play();
+                isAudioPlaying = true;
+                soundOnIcon.style.display = 'block';
+                soundOffIcon.style.display = 'none';
+            } else {
+                bgMusic.pause();
+                isAudioPlaying = false;
+                soundOnIcon.style.display = 'none';
+                soundOffIcon.style.display = 'block';
+            }
+        });
+    }
+
+    // Gesture unlock
     const userGesturePlay = () => {
         if (!isAudioPlaying) {
             tryPlay();
@@ -371,22 +483,50 @@ function setupAudio() {
     window.addEventListener('click', userGesturePlay, { once: true });
     window.addEventListener('touchstart', userGesturePlay, { once: true });
 
-    // Initial load try
     tryPlay();
 }
 
-// Pointer Events for 3D Tilt
+// Pointer Events for 3D Tilt & Cursor Particles
 function setupPointerEvents() {
     window.addEventListener('mousemove', (e) => {
         mouse.targetX = (e.clientX / window.innerWidth) * 2 - 1;
         mouse.targetY = -(e.clientY / window.innerHeight) * 2 + 1;
+
+        // Add point to cursor trail
+        cursorTrail.push({
+            x: e.clientX,
+            y: e.clientY,
+            size: Math.random() * 4 + 2,
+            life: 1.0
+        });
+        if (cursorTrail.length > 25) cursorTrail.shift();
     });
 
     window.addEventListener('touchmove', (e) => {
         if (e.touches.length > 0) {
             mouse.targetX = (e.touches[0].clientX / window.innerWidth) * 2 - 1;
             mouse.targetY = -(e.touches[0].clientY / window.innerHeight) * 2 + 1;
+
+            cursorTrail.push({
+                x: e.touches[0].clientX,
+                y: e.touches[0].clientY,
+                size: Math.random() * 4 + 2,
+                life: 1.0
+            });
+            if (cursorTrail.length > 25) cursorTrail.shift();
         }
+    }, { passive: true });
+
+    // Click/Tap on Heart
+    window.addEventListener('click', (e) => {
+        // Ignore clicks on sound button
+        if (e.target.closest('#btn-sound')) return;
+        triggerClickSparks();
+    });
+
+    window.addEventListener('touchstart', (e) => {
+        if (e.target.closest('#btn-sound')) return;
+        triggerClickSparks();
     }, { passive: true });
 }
 
