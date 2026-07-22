@@ -4,81 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>dupdup ❤️</title>
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500..900;1,500..900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <!-- Three.js 3D Library -->
+    <!-- Three.js 3D Engine -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
-    <!-- Arkaplan Yıldız Canvas -->
+    <!-- Yıldızlı Uzay Arkaplan Canvas -->
     <canvas id="bg-canvas"></canvas>
 
-    <!-- 3D Kalp Canvas Container -->
+    <!-- Fullscreen 3D Dokulu Kalp Canvas Container -->
     <div id="three-container"></div>
 
-    <!-- EKRANDA SADECE ALTA BİR TANE YAZI KUTUSU VE MÜZİK KONTROLÜ -->
-    <div id="bottom-container">
-        <!-- Sade Tek Metin Alanı -->
-        <div class="bottom-card">
-            <h1 id="main-title">dupdup</h1>
-            <p id="main-subtitle">nasil olmus ha</p>
-            <div class="card-action">
-                <button id="btn-open-settings" class="icon-btn" title="Yazıları Değiştir">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                </button>
-            </div>
-        </div>
-
-        <!-- Müzik Oynatıcı -->
-        <div class="audio-bar">
-            <button id="btn-toggle-play" class="play-btn" aria-label="Müziği Oynat/Durdur">
-                <svg id="play-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                <svg id="pause-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-            </button>
-            <div class="audio-details">
-                <span id="music-status-text" class="music-name">music.mp3</span>
-                <div id="equalizer" class="eq-visualizer">
-                    <span></span><span></span><span></span><span></span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Düzenleme / Yazıları Değiştirme Modalı -->
-    <div id="settings-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-card">
-            <div class="modal-header">
-                <h2>Yazıları Değiştir</h2>
-                <button id="btn-close-settings" class="close-btn">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="input-group">
-                    <label for="input-title">Ana Başlık (İsim / Hitap):</label>
-                    <input type="text" id="input-title" value="dupdup" placeholder="Örn: dupdup">
-                </div>
-                <div class="input-group">
-                    <label for="input-subtitle">Alt Yazı:</label>
-                    <input type="text" id="input-subtitle" value="nasil olmus ha" placeholder="Örn: nasil olmus ha">
-                </div>
-                <div class="input-group">
-                    <label for="input-orbit-text">3D Kalp Etrafındaki Yazı:</label>
-                    <input type="text" id="input-orbit-text" value="nasil olmus" placeholder="Örn: nasil olmus">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button id="btn-save-settings" class="save-btn">Kaydet</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Otomatik Çalan Müzik Dosyası -->
-    <audio id="bg-music" src="music.mp3" loop preload="auto"></audio>
+    <!-- Otomatik Oynatılan Fon Müziği (music.mp3) -->
+    <audio id="bg-music" src="music.mp3" loop autoplay preload="auto"></audio>
 
     <script src="script.js"></script>
 </body>
 </html>
+
 

@@ -1,14 +1,6 @@
 // ======================================================
-// SANA ÖZEL ❤️ (3D Heart & Minimal UI)
+// DOKULU 3D KALP & TEMİZ EKRAN (Three.js + music.mp3)
 // ======================================================
-
-// STATE
-const AppState = {
-    title: localStorage.getItem('so_title') || "dupdup",
-    subtitle: localStorage.getItem('so_subtitle') || "nasil olmus ha",
-    orbitText: localStorage.getItem('so_orbit_text') || "nasil olmus",
-    isPlaying: false
-};
 
 // DOM ELEMENTS
 const bgCanvas = document.getElementById('bg-canvas');
@@ -17,15 +9,16 @@ const threeContainer = document.getElementById('three-container');
 
 // Three.js Globals
 let scene, camera, renderer;
-let heartMesh, glowMesh, textGroup;
+let heartMesh, glowMesh, dustParticles;
 let time = 0;
 let mouse = { x: 0, y: 0, targetX: 0, targetY: 0 };
+let isAudioPlaying = false;
 
 // Background Stars
 let stars = [];
 
 // ======================================================
-// 1. BACKGROUND STARS CANVAS
+// 1. BACKGROUND STARS & NEBULA CANVAS
 // ======================================================
 function initBgCanvas() {
     if (!bgCanvas) return;
@@ -40,13 +33,13 @@ function initBgCanvas() {
     if (bgCtx) bgCtx.scale(dpr, dpr);
 
     stars = [];
-    const count = Math.min(Math.floor((width * height) / 3500), 200);
+    const count = Math.min(Math.floor((width * height) / 3000), 220);
 
     for (let i = 0; i < count; i++) {
         stars.push({
             x: Math.random() * width,
             y: Math.random() * height,
-            size: Math.random() * 1.5 + 0.5,
+            size: Math.random() * 1.6 + 0.4,
             alpha: Math.random(),
             speed: Math.random() * 0.02 + 0.005,
             phase: Math.random() * Math.PI * 2
@@ -69,9 +62,10 @@ function renderBgCanvas() {
     bgCtx.fillStyle = gradient;
     bgCtx.fillRect(0, 0, width, height);
 
-    // Nebula Glow
-    const nebula = bgCtx.createRadialGradient(width / 2, height * 0.45, 0, width / 2, height * 0.45, width * 0.35);
-    nebula.addColorStop(0, 'rgba(255, 42, 95, 0.25)');
+    // Nebula Glow Behind Heart
+    const nebula = bgCtx.createRadialGradient(width / 2, height / 2, 0, width / 2, height / 2, width * 0.4);
+    nebula.addColorStop(0, 'rgba(255, 30, 80, 0.28)');
+    nebula.addColorStop(0.5, 'rgba(180, 20, 60, 0.12)');
     nebula.addColorStop(1, 'transparent');
     bgCtx.fillStyle = nebula;
     bgCtx.globalCompositeOperation = 'screen';
@@ -92,7 +86,88 @@ function renderBgCanvas() {
 }
 
 // ======================================================
-// 2. THREE.JS 3D HEART & ORBITING TEXT
+// 2. PROCEDURAL TEXTURE GENERATION (3D Surface Texture)
+// ======================================================
+function createProceduralTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+
+    // Base Crimson Velvet Background
+    const grad = ctx.createLinearGradient(0, 0, 512, 512);
+    grad.addColorStop(0, '#ff1a53');
+    grad.addColorStop(0.5, '#d60b3b');
+    grad.addColorStop(1, '#8f0022');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 512, 512);
+
+    // Add Procedural Organic Grain / Noise Texture
+    const imgData = ctx.getImageData(0, 0, 512, 512);
+    const data = imgData.data;
+
+    for (let i = 0; i < data.length; i += 4) {
+        const noise = (Math.random() - 0.5) * 28;
+        data[i] = Math.min(255, Math.max(0, data[i] + noise));     // R
+        data[i + 1] = Math.min(255, Math.max(0, data[i + 1] + noise * 0.3)); // G
+        data[i + 2] = Math.min(255, Math.max(0, data[i + 2] + noise * 0.4)); // B
+    }
+    ctx.putImageData(imgData, 0, 0);
+
+    // Subtle Radial Surface Highlights
+    for (let j = 0; j < 40; j++) {
+        const x = Math.random() * 512;
+        const y = Math.random() * 512;
+        const r = Math.random() * 60 + 20;
+
+        const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+        g.addColorStop(0, 'rgba(255, 180, 200, 0.15)');
+        g.addColorStop(1, 'transparent');
+
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(2, 2);
+    return texture;
+}
+
+function createBumpMapTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = '#808080';
+    ctx.fillRect(0, 0, 512, 512);
+
+    // High detail bump map pattern
+    for (let i = 0; i < 1200; i++) {
+        const x = Math.random() * 512;
+        const y = Math.random() * 512;
+        const r = Math.random() * 4 + 1;
+        const val = Math.floor(Math.random() * 255);
+
+        ctx.fillStyle = `rgb(${val},${val},${val})`;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    const bumpTex = new THREE.CanvasTexture(canvas);
+    bumpTex.wrapS = THREE.RepeatWrapping;
+    bumpTex.wrapT = THREE.RepeatWrapping;
+    bumpTex.repeat.set(3, 3);
+    return bumpTex;
+}
+
+// ======================================================
+// 3. THREE.JS REALISTIC 3D HEART
 // ======================================================
 function createHeartShape() {
     const x = 0, y = 0;
@@ -118,7 +193,7 @@ function initThree() {
     scene = new THREE.Scene();
 
     camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-    camera.position.z = 220;
+    camera.position.z = 210;
 
     renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
     renderer.setSize(width, height);
@@ -126,180 +201,117 @@ function initThree() {
     threeContainer.innerHTML = '';
     threeContainer.appendChild(renderer.domElement);
 
-    // Lights
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    // Multi-Light Setup for rich 3D shading
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     scene.add(ambientLight);
 
-    const pointLight1 = new THREE.PointLight(0xff2a5f, 2.5, 300);
-    pointLight1.position.set(50, 50, 100);
-    scene.add(pointLight1);
+    const mainLight = new THREE.PointLight(0xff5588, 3, 350);
+    mainLight.position.set(60, 60, 120);
+    scene.add(mainLight);
 
-    const pointLight2 = new THREE.PointLight(0xff758c, 1.8, 300);
-    pointLight2.position.set(-50, -50, 50);
-    scene.add(pointLight2);
+    const rimLight = new THREE.PointLight(0xff2255, 2.5, 300);
+    rimLight.position.set(-70, -50, 80);
+    scene.add(rimLight);
 
-    const backLight = new THREE.DirectionalLight(0xffffff, 1);
-    backLight.position.set(0, 0, -100);
-    scene.add(backLight);
+    const backKeyLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    backKeyLight.position.set(0, 50, -100);
+    scene.add(backKeyLight);
 
-    // 3D Heart Geometry
+    // 3D Extruded Heart Geometry
     const shape = createHeartShape();
     const extrudeSettings = {
-        depth: 22,
+        depth: 26,
         bevelEnabled: true,
-        bevelSegments: 8,
-        steps: 2,
-        bevelSize: 6,
-        bevelThickness: 6
+        bevelSegments: 12,
+        steps: 3,
+        bevelSize: 8,
+        bevelThickness: 8
     };
 
     const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
     geometry.center();
 
-    // Material - Shiny 3D Crimson Ruby
-    const material = new THREE.MeshPhongMaterial({
-        color: 0xff1447,
-        emissive: 0x4a0014,
-        specular: 0xffaaaa,
-        shininess: 90,
-        flatShading: false
+    // Procedural Textures
+    const colorTex = createProceduralTexture();
+    const bumpTex = createBumpMapTexture();
+
+    // Textured Metallic/Velvet Material
+    const material = new THREE.MeshStandardMaterial({
+        map: colorTex,
+        bumpMap: bumpTex,
+        bumpScale: 0.8,
+        roughness: 0.35,
+        metalness: 0.25,
+        emissive: 0x4a0015,
+        emissiveIntensity: 0.4
     });
 
     heartMesh = new THREE.Mesh(geometry, material);
-    heartMesh.scale.set(0.7, 0.7, 0.7);
+    heartMesh.scale.set(0.75, 0.75, 0.75);
     heartMesh.rotation.x = Math.PI; // Flip upright
     scene.add(heartMesh);
 
-    // Outer Glowing Outline Mesh
-    const wireMat = new THREE.MeshBasicMaterial({
+    // Soft Ambient Particle Dust around Heart
+    const dustGeo = new THREE.BufferGeometry();
+    const dustCount = 120;
+    const posArray = new Float32Array(dustCount * 3);
+
+    for (let i = 0; i < dustCount * 3; i += 3) {
+        posArray[i] = (Math.random() - 0.5) * 200;
+        posArray[i + 1] = (Math.random() - 0.5) * 200;
+        posArray[i + 2] = (Math.random() - 0.5) * 150;
+    }
+
+    dustGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+    const dustMat = new THREE.PointsMaterial({
+        size: 2.2,
         color: 0xff6688,
-        wireframe: true,
         transparent: true,
-        opacity: 0.12
-    });
-    glowMesh = new THREE.Mesh(geometry, wireMat);
-    glowMesh.scale.set(0.74, 0.74, 0.74);
-    glowMesh.rotation.x = Math.PI;
-    scene.add(glowMesh);
-
-    // Create Orbiting Text Sprites
-    textGroup = new THREE.Group();
-    scene.add(textGroup);
-
-    rebuildOrbitText();
-}
-
-// Create Canvas Text Textures as Sprites around the 3D Heart Arms
-function createTextSprite(text) {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = 300;
-    canvas.height = 70;
-
-    ctx.font = 'Bold 28px "Plus Jakarta Sans", sans-serif';
-    ctx.fillStyle = '#ffffff';
-    ctx.shadowColor = '#ff2a5f';
-    ctx.shadowBlur = 12;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(text, 150, 35);
-
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.needsUpdate = true;
-
-    const spriteMaterial = new THREE.SpriteMaterial({
-        map: texture,
-        transparent: true,
+        opacity: 0.6,
         blending: THREE.AdditiveBlending
     });
 
-    const sprite = new THREE.Sprite(spriteMaterial);
-    sprite.scale.set(38, 9, 1);
-    return sprite;
-}
-
-function rebuildOrbitText() {
-    if (!textGroup) return;
-
-    // Clear existing
-    while (textGroup.children.length > 0) {
-        textGroup.remove(textGroup.children[0]);
-    }
-
-    const textToUse = AppState.orbitText || "nasil olmus";
-    const count = 5;
-    const radius = 62;
-
-    for (let i = 0; i < count; i++) {
-        const sprite = createTextSprite(textToUse);
-        const angle = (Math.PI * 2 / count) * i;
-
-        sprite.userData = {
-            angle: angle,
-            radius: radius,
-            speed: 0.008,
-            yOffset: Math.sin(i * 1.5) * 8
-        };
-
-        textGroup.add(sprite);
-    }
+    dustParticles = new THREE.Points(dustGeo, dustMat);
+    scene.add(dustParticles);
 }
 
 // ======================================================
-// 3. THREE.JS ANIMATION LOOP
+// 4. ANIMATION LOOP
 // ======================================================
 function renderThree() {
     if (!renderer || !scene || !camera) return;
 
     time += 0.016;
 
-    // Smooth Mouse Interactivity Tilt
+    // Smooth Mouse Interactivity
     mouse.x += (mouse.targetX - mouse.x) * 0.05;
     mouse.y += (mouse.targetY - mouse.y) * 0.05;
 
-    // Beating Heart Effect (lub-dub pulse)
+    // Realistic Organic Pulse Wave (lub-dub heartbeat)
     const beatPhase = (time * 2.8) % (Math.PI * 2);
     let scalePulse = 1;
     if (beatPhase < 0.5) {
-        scalePulse = 1 + Math.sin(beatPhase * (Math.PI / 0.5)) * 0.08;
+        scalePulse = 1 + Math.sin(beatPhase * (Math.PI / 0.5)) * 0.09;
     } else if (beatPhase > 0.7 && beatPhase < 1.2) {
-        scalePulse = 1 + Math.sin((beatPhase - 0.7) * (Math.PI / 0.5)) * 0.04;
+        scalePulse = 1 + Math.sin((beatPhase - 0.7) * (Math.PI / 0.5)) * 0.045;
     }
 
-    const baseScale = (window.innerWidth < 600) ? 0.55 : 0.72;
+    const baseScale = (window.innerWidth < 600) ? 0.62 : 0.8;
 
     if (heartMesh) {
         heartMesh.scale.set(baseScale * scalePulse, baseScale * scalePulse, baseScale * scalePulse);
-        heartMesh.rotation.y = Math.sin(time * 0.8) * 0.25 + mouse.x * 0.3;
-        heartMesh.rotation.z = Math.cos(time * 0.6) * 0.08 + mouse.y * 0.15;
+        heartMesh.rotation.y = Math.sin(time * 0.7) * 0.22 + mouse.x * 0.35;
+        heartMesh.rotation.z = Math.cos(time * 0.5) * 0.06 + mouse.y * 0.18;
     }
 
-    if (glowMesh) {
-        glowMesh.scale.set(baseScale * scalePulse * 1.05, baseScale * scalePulse * 1.05, baseScale * scalePulse * 1.05);
-        glowMesh.rotation.y = heartMesh.rotation.y;
-        glowMesh.rotation.z = heartMesh.rotation.z;
-    }
-
-    // Orbiting Text Motion
-    if (textGroup) {
-        textGroup.children.forEach((sprite) => {
-            sprite.userData.angle += sprite.userData.speed;
-            const a = sprite.userData.angle;
-
-            sprite.position.x = Math.cos(a) * sprite.userData.radius;
-            sprite.position.z = Math.sin(a) * sprite.userData.radius;
-            sprite.position.y = Math.sin(a * 2 + time) * 10 + sprite.userData.yOffset;
-        });
-
-        textGroup.rotation.y = mouse.x * 0.2;
+    if (dustParticles) {
+        dustParticles.rotation.y = time * 0.05;
+        dustParticles.rotation.x = time * 0.02;
     }
 
     renderer.render(scene, camera);
 }
 
-// ======================================================
-// 4. MAIN ANIMATION LOOP
-// ======================================================
 function animate() {
     renderBgCanvas();
     renderThree();
@@ -307,114 +319,39 @@ function animate() {
 }
 
 // ======================================================
-// 5. AUDIO PLAYER (AUTOMATIC PLAYBACK & CONTROLS)
+// 5. AUTOMATIC AUDIO PLAYBACK (music.mp3)
 // ======================================================
-function setupAudioPlayer() {
+function setupAudio() {
     const bgMusic = document.getElementById('bg-music');
-    const playBtn = document.getElementById('btn-toggle-play');
-    const playIcon = document.getElementById('play-icon');
-    const pauseIcon = document.getElementById('pause-icon');
-    const equalizer = document.getElementById('equalizer');
-
     if (!bgMusic) return;
 
-    bgMusic.volume = 0.8;
+    bgMusic.volume = 0.85;
 
-    const playAudio = () => {
+    const tryPlay = () => {
         bgMusic.play().then(() => {
-            AppState.isPlaying = true;
-            playIcon.style.display = 'none';
-            pauseIcon.style.display = 'block';
-            equalizer.classList.add('playing');
+            isAudioPlaying = true;
         }).catch(() => {
-            AppState.isPlaying = false;
+            isAudioPlaying = false;
         });
     };
 
-    const pauseAudio = () => {
-        bgMusic.pause();
-        AppState.isPlaying = false;
-        playIcon.style.display = 'block';
-        pauseIcon.style.display = 'none';
-        equalizer.classList.remove('playing');
+    // User gesture handler to enable sound if browser restricts unmuted autoplay
+    const userGesturePlay = () => {
+        if (!isAudioPlaying) {
+            tryPlay();
+        }
+        window.removeEventListener('click', userGesturePlay);
+        window.removeEventListener('touchstart', userGesturePlay);
     };
 
-    playBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (AppState.isPlaying) {
-            pauseAudio();
-        } else {
-            playAudio();
-        }
-    });
+    window.addEventListener('click', userGesturePlay, { once: true });
+    window.addEventListener('touchstart', userGesturePlay, { once: true });
 
-    // Auto Play on first touch / click anywhere on the screen
-    const autoPlayTrigger = () => {
-        if (!AppState.isPlaying) {
-            playAudio();
-        }
-        window.removeEventListener('click', autoPlayTrigger);
-        window.removeEventListener('touchstart', autoPlayTrigger);
-    };
-
-    window.addEventListener('click', autoPlayTrigger, { once: true });
-    window.addEventListener('touchstart', autoPlayTrigger, { once: true });
-
-    // Try auto-play immediately on load
-    playAudio();
+    // Initial load try
+    tryPlay();
 }
 
-// ======================================================
-// 6. UI MODAL & SETTINGS
-// ======================================================
-function setupUI() {
-    const modal = document.getElementById('settings-modal');
-    const btnOpen = document.getElementById('btn-open-settings');
-    const btnClose = document.getElementById('btn-close-settings');
-    const btnSave = document.getElementById('btn-save-settings');
-
-    const inputTitle = document.getElementById('input-title');
-    const inputSubtitle = document.getElementById('input-subtitle');
-    const inputOrbitText = document.getElementById('input-orbit-text');
-
-    const mainTitle = document.getElementById('main-title');
-    const mainSubtitle = document.getElementById('main-subtitle');
-
-    // Update UI from initial state
-    mainTitle.textContent = AppState.title;
-    mainSubtitle.textContent = AppState.subtitle;
-    document.title = `${AppState.title} ❤️`;
-
-    btnOpen.addEventListener('click', () => {
-        inputTitle.value = AppState.title;
-        inputSubtitle.value = AppState.subtitle;
-        inputOrbitText.value = AppState.orbitText;
-        modal.style.display = 'flex';
-    });
-
-    btnClose.addEventListener('click', () => {
-        modal.style.display = 'none';
-    });
-
-    btnSave.addEventListener('click', () => {
-        AppState.title = inputTitle.value.trim() || "dupdup";
-        AppState.subtitle = inputSubtitle.value.trim() || "nasil olmus ha";
-        AppState.orbitText = inputOrbitText.value.trim() || "nasil olmus";
-
-        localStorage.setItem('so_title', AppState.title);
-        localStorage.setItem('so_subtitle', AppState.subtitle);
-        localStorage.setItem('so_orbit_text', AppState.orbitText);
-
-        mainTitle.textContent = AppState.title;
-        mainSubtitle.textContent = AppState.subtitle;
-        document.title = `${AppState.title} ❤️`;
-
-        rebuildOrbitText();
-        modal.style.display = 'none';
-    });
-}
-
-// Pointer movement for 3D tilt
+// Pointer Events for 3D Tilt
 function setupPointerEvents() {
     window.addEventListener('mousemove', (e) => {
         mouse.targetX = (e.clientX / window.innerWidth) * 2 - 1;
@@ -429,7 +366,7 @@ function setupPointerEvents() {
     }, { passive: true });
 }
 
-// Window resize handler
+// Resize Handler
 function onWindowResize() {
     initBgCanvas();
 
@@ -443,13 +380,12 @@ function onWindowResize() {
 }
 
 // ======================================================
-// 7. INITIALIZATION
+// 6. INITIALIZATION
 // ======================================================
 function init() {
     initBgCanvas();
     initThree();
-    setupAudioPlayer();
-    setupUI();
+    setupAudio();
     setupPointerEvents();
 
     window.addEventListener('resize', onWindowResize);
@@ -462,4 +398,5 @@ if (document.readyState === 'loading') {
 } else {
     init();
 }
+
 
