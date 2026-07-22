@@ -9,7 +9,7 @@ const threeContainer = document.getElementById('three-container');
 
 // Three.js Globals
 let scene, camera, renderer;
-let heartMesh, glowMesh, dustParticles;
+let heartMesh, wireframeMesh, dustParticles;
 let time = 0;
 let mouse = { x: 0, y: 0, targetX: 0, targetY: 0 };
 let isAudioPlaying = false;
@@ -251,6 +251,19 @@ function initThree() {
     heartMesh.rotation.x = Math.PI; // Flip upright
     scene.add(heartMesh);
 
+    // Glowing Geometric Wireframe Mesh Overlay ("Ağlı" 3D Mesh)
+    const wireMat = new THREE.MeshBasicMaterial({
+        color: 0xff66a0,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.22,
+        blending: THREE.AdditiveBlending
+    });
+    wireframeMesh = new THREE.Mesh(geometry, wireMat);
+    wireframeMesh.scale.set(0.755, 0.755, 0.755);
+    wireframeMesh.rotation.x = Math.PI;
+    scene.add(wireframeMesh);
+
     // Soft Ambient Particle Dust around Heart
     const dustGeo = new THREE.BufferGeometry();
     const dustCount = 120;
@@ -302,6 +315,13 @@ function renderThree() {
         heartMesh.scale.set(baseScale * scalePulse, baseScale * scalePulse, baseScale * scalePulse);
         heartMesh.rotation.y = Math.sin(time * 0.7) * 0.22 + mouse.x * 0.35;
         heartMesh.rotation.z = Math.cos(time * 0.5) * 0.06 + mouse.y * 0.18;
+    }
+
+    if (wireframeMesh) {
+        const wireScale = baseScale * scalePulse * 1.008;
+        wireframeMesh.scale.set(wireScale, wireScale, wireScale);
+        wireframeMesh.rotation.y = heartMesh.rotation.y;
+        wireframeMesh.rotation.z = heartMesh.rotation.z;
     }
 
     if (dustParticles) {
